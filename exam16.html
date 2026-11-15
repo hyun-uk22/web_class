@@ -28,8 +28,27 @@
             }
             else {
                 $('#disp1').val(cur);
-                $('#disp2').val(eval(cur));
+                //$('#disp2').val(eval(cur));
+                let use_op = cur.match(/[+*/-]/)[0];
+                let split_input = cur.split(use_op);
+                let num1 = parseFloat(split_input[0]);
+                let num2 = parseFloat(split_input[1]);
+                let result = 0;
+                if (use_op == '+') {
+                    result = num1 + num2;
+                } else if (use_op == '-') {
+                    result = num1 - num2;
+                } else if (use_op == '*') {
+                    result = num1 * num2;
+                } else if (use_op == '/') {
+                    result = num1 / num2;
+                }
+                $('#disp2').val(result);
             }
+        });
+        $('.func').click(function(){
+            $('#disp1').val('');
+            $('#disp2').val('');
         });
     });
 </script>

@@ -1,0 +1,444 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f5ef">
+  <meta name="description" content="입력한 식과 결과를 함께 확인하는 간단한 사칙연산 계산기.">
+  <title>Calc. — 계산기</title>
+  <style>
+/* 1. 공통 색상과 페이지 배치 */
+:root { --page: #f4f5ef; --ink: #29322b; --muted: #70796d; --line: #dde2d6; --accent: #c4e59a; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; }
+.page { width: min(1060px, calc(100% - 80px)); margin: 0 auto; }
+.site-header { height: 100px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 11px; font-size: 27px; font-weight: 750; letter-spacing: -1.2px; }
+.brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--accent); background: var(--ink); font-size: 29px; font-weight: 400; line-height: 1; }
+.brand-dot { color: #7f9c5d; }
+.course-label { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; color: #6e7868; }
+.label-divider { margin: 0 13px; color: #b8c0b1; }
+main { max-width: 820px; margin: 0 auto; padding: 48px 0 52px; }
+.page-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.eyebrow { margin: 0 0 13px; color: #77816f; font-size: 9px; font-weight: 650; letter-spacing: 2px; }
+h1 { margin: 0 0 12px; font-size: 32px; letter-spacing: -1.4px; font-weight: 700; }
+.intro { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.mode-badge { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border: 1px solid #d8e1d0; border-radius: 50px; background: #edf2e7; font-size: 11px; color: #526545; white-space: nowrap; }
+.mode-badge > span { width: 5px; height: 5px; background: #7c9f55; border-radius: 50%; }
+.workspace { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 56px; align-items: start; }
+
+/* 2. 계산기 화면 */
+.calculator { min-width: 0; padding: 22px 22px 0; border: 1px solid #e3e7dc; border-radius: 28px; background: #fffefa; box-shadow: 0 10px 36px rgba(44, 56, 31, .055), 0 2px 4px rgba(44, 56, 31, .025); }
+.screen { position: relative; min-height: 170px; padding: 20px 22px 23px; border-radius: 18px; background: #29322b; color: #f3f7ed; overflow: hidden; }
+.screen-heading { display: flex; justify-content: space-between; align-items: center; color: #b5c4aa; font-size: 10px; letter-spacing: .5px; }
+.state-label { font-size: 9px; color: #c4dcac; }
+.expression { height: 30px; margin-top: 15px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; text-align: right; color: #b8c8ae; font-size: 17px; font-variant-numeric: tabular-nums; scrollbar-width: thin; scrollbar-color: #62725b transparent; }
+.display { display: block; margin-top: 3px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; text-align: right; font-size: 52px; line-height: 1.2; font-weight: 400; letter-spacing: -1.8px; font-variant-numeric: tabular-nums; scrollbar-width: none; }
+.display.is-small { font-size: 35px; line-height: 1.78; letter-spacing: -1px; }
+.display.is-tiny { font-size: 27px; line-height: 2.31; letter-spacing: -.5px; }
+.screen-rule { position: absolute; bottom: 12px; left: 22px; width: 22px; height: 2px; background: #c4e59a; opacity: .7; }
+.calculator.has-error .display { color: #f3c6b7; }
+.calculator.has-error .state-label { color: #f3c6b7; }
+
+/* 3. 4열 버튼 배열 */
+.keypad { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.key { min-width: 0; height: 62px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 14px; background: #f0f2ec; color: var(--ink); cursor: pointer; font-size: 25px; font-weight: 450; transition: background .12s, transform .12s, box-shadow .12s; user-select: none; touch-action: manipulation; }
+.key:hover { background: #e6e9df; }
+.key:active, .key.is-pressed { transform: translateY(2px); background: #dce3d1; box-shadow: inset 0 2px 3px rgba(41, 50, 43, .08); }
+.key:focus-visible, .download-link:focus-visible { outline: 3px solid #668742; outline-offset: 3px; }
+.span-two { grid-column: span 2; }
+.key-clear { justify-content: space-between; padding: 0 23px; background: #f5eae1; color: #91654b; font-size: 20px; font-weight: 550; }
+.key-clear:hover { background: #efdfd2; }
+.key-caption { font-size: 10px; font-weight: 500; }
+.key-utility { color: #63735a; background: #ebeee5; }
+.key-operator { background: #e5edda; color: #526c3d; font-size: 30px; }
+.key-operator:hover { background: #d8e5c8; }
+.key-operator.is-selected { border-color: #9dbd7b; background: #d4e4c0; }
+.key-equals { background: var(--accent); color: #2c431d; font-size: 29px; }
+.key-equals:hover { background: #b5d78b; }
+.key-zero { justify-content: flex-start; padding-left: 35px; }
+.key:disabled { cursor: not-allowed; opacity: .5; }
+.message { min-height: 43px; display: flex; align-items: center; justify-content: center; margin: 0; padding: 8px 0; font-size: 10px; line-height: 1.5; text-align: center; color: #78816f; }
+.has-error .message, .load-error { color: #a24f39; }
+.load-error { font-size: 12px; line-height: 1.6; }
+
+/* 4. 옆의 사용 안내 */
+.guide { padding-top: 18px; }
+.guide-title { display: flex; align-items: center; gap: 9px; margin-bottom: 25px; }
+.tiny-plus { font-size: 21px; color: #7c926b; }
+.guide-title h2 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: -.3px; }
+.guide-section { display: grid; grid-template-columns: 23px minmax(0, 1fr); gap: 10px; padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+.section-number { padding-top: 2px; color: #829173; font-size: 10px; font-family: ui-monospace, monospace; }
+h3 { margin: 0 0 10px; font-size: 13px; font-weight: 650; letter-spacing: -.2px; }
+.guide p { margin: 0; font-size: 12px; line-height: 1.9; color: var(--muted); word-break: keep-all; }
+.example { display: flex; align-items: center; gap: 15px; margin-top: 16px; padding: 13px 16px; border: 1px solid #dde5d2; border-radius: 10px; color: #6b7d5b; font-size: 16px; font-variant-numeric: tabular-nums; }
+.example-equals { color: #a1ad94; }
+.example strong { margin-left: auto; color: #41592f; font-weight: 600; }
+.inline-equation { font-variant-numeric: tabular-nums; color: #536347; }
+.keyboard-section { padding-bottom: 21px; margin-bottom: 19px; }
+.shortcuts { margin: 12px 0 0; }
+.shortcuts > div { display: flex; justify-content: space-between; align-items: center; gap: 5px; min-height: 31px; }
+.shortcuts dt { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.shortcuts dd { margin: 0; white-space: nowrap; }
+.shortcuts dd > span { color: #818b78; font-size: 9px; }
+kbd { display: inline-block; min-width: 23px; padding: 4px 5px; border: 1px solid #d8dfcf; border-bottom-width: 2px; border-radius: 5px; background: #fafbf7; color: #606f53; font: 9px ui-monospace, "Segoe UI", monospace; text-align: center; }
+.download-link { display: flex; align-items: center; gap: 8px; width: fit-content; color: #637754; font-size: 11px; text-decoration: none; border-radius: 2px; }
+.download-link > span { margin-left: 12px; }
+.download-link:hover { color: #2f491d; text-decoration: underline; text-underline-offset: 4px; }
+.site-footer { display: flex; justify-content: space-between; align-items: center; min-height: 65px; border-top: 1px solid var(--line); color: #89917f; font-size: 10px; }
+.footer-symbols { font-size: 17px; letter-spacing: 8px; color: #7a8c68; }
+.footer-symbols > span { color: #a6b19a; }
+
+/* 5. 태블릿/휴대폰 화면 */
+@media (max-width: 850px) {
+  .page { width: min(720px, calc(100% - 48px)); }
+  .workspace { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 28px; }
+  .course-label { font-size: 8px; letter-spacing: .6px; }
+  .shortcuts > div { flex-wrap: wrap; gap: 5px; padding: 4px 0; }
+}
+@media (max-width: 650px) {
+  .page { width: min(440px, calc(100% - 32px)); }
+  .site-header { height: 74px; }
+  .brand { font-size: 24px; }
+  .course-label { max-width: 140px; text-align: right; line-height: 1.8; }
+  .label-divider { margin: 0 5px; }
+  main { padding-top: 30px; padding-bottom: 30px; }
+  .page-heading { align-items: flex-start; gap: 8px; margin-bottom: 24px; }
+  h1 { font-size: 25px; letter-spacing: -1.1px; }
+  .eyebrow { font-size: 7px; letter-spacing: 1.3px; }
+  .intro { font-size: 11px; }
+  .mode-badge { margin-top: 21px; padding: 7px 8px; font-size: 9px; gap: 5px; }
+  .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 30px; }
+  .calculator { padding: 17px 17px 0; border-radius: 24px; }
+  .screen { min-height: 157px; padding: 18px 19px 20px; }
+  .display { font-size: 48px; }
+  .key { height: 59px; border-radius: 12px; }
+  .keypad { gap: 9px; margin-top: 15px; }
+  .guide { padding: 4px 6px 0; }
+  .guide-title { margin-bottom: 22px; }
+  .guide-section { padding-bottom: 20px; margin-bottom: 20px; }
+  .shortcuts > div { flex-wrap: nowrap; }
+}
+@media (max-width: 360px) {
+  .mode-badge { display: none; }
+  .calculator { padding: 14px 14px 0; }
+  .keypad { gap: 7px; }
+  .key { height: 54px; }
+}
+@media (prefers-reduced-motion: reduce) { .key { transition: none; } }
+
+  </style>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2329322b'/%3E%3Cpath d='M32 17v30M17 32h30' stroke='%23c4e59a' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <div class="brand" aria-label="Calc 계산기">
+        <span class="brand-mark" aria-hidden="true">+</span>
+        <span>Calc<span class="brand-dot">.</span></span>
+      </div>
+      <span class="course-label">웹프로그래밍 <span class="label-divider">/</span> BASIC CALCULATOR</span>
+    </header>
+
+    <main>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">A LITTLE SPACE TO CALCULATE</p>
+          <h1>계산은, 간단하게.</h1>
+          <p class="intro">숫자를 누르고, 식을 확인하고, 답을 구하세요.</p>
+        </div>
+        <span class="mode-badge"><span aria-hidden="true"></span> 기본 계산기</span>
+      </div>
+
+      <div class="workspace">
+        <section class="calculator" aria-label="사칙연산 계산기">
+          <!-- 입력한 전체 식과 현재 숫자/결과를 따로 표시합니다. -->
+          <div class="screen">
+            <div class="screen-heading">
+              <span>입력한 식</span>
+              <span id="state-label" class="state-label">준비</span>
+            </div>
+            <div id="expression" class="expression" aria-label="입력한 식">0</div>
+            <output id="display" class="display" aria-label="현재 숫자 또는 계산 결과" aria-live="polite" aria-atomic="true">0</output>
+            <span class="screen-rule" aria-hidden="true"></span>
+          </div>
+
+          <!-- data-action은 버튼 종류, data-value는 입력값입니다. -->
+          <div class="keypad" aria-label="계산기 버튼">
+            <button type="button" class="key key-clear span-two" data-action="clear" aria-label="AC 전체 초기화"><span>AC</span><span class="key-caption">초기화</span></button>
+            <button type="button" class="key key-utility" data-action="delete" aria-label="한 글자 삭제" title="한 글자 삭제 (Backspace)">
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 5h11v14H9l-7-7 7-7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m12 9 6 6m0-6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+            <button type="button" class="key key-operator" data-action="operator" data-value="/" aria-label="나누기">÷</button>
+
+            <button type="button" class="key" data-action="number" data-value="7">7</button>
+            <button type="button" class="key" data-action="number" data-value="8">8</button>
+            <button type="button" class="key" data-action="number" data-value="9">9</button>
+            <button type="button" class="key key-operator" data-action="operator" data-value="*" aria-label="곱하기">×</button>
+
+            <button type="button" class="key" data-action="number" data-value="4">4</button>
+            <button type="button" class="key" data-action="number" data-value="5">5</button>
+            <button type="button" class="key" data-action="number" data-value="6">6</button>
+            <button type="button" class="key key-operator" data-action="operator" data-value="-" aria-label="빼기">−</button>
+
+            <button type="button" class="key" data-action="number" data-value="1">1</button>
+            <button type="button" class="key" data-action="number" data-value="2">2</button>
+            <button type="button" class="key" data-action="number" data-value="3">3</button>
+            <button type="button" class="key key-operator" data-action="operator" data-value="+" aria-label="더하기">+</button>
+
+            <button type="button" class="key key-zero span-two" data-action="number" data-value="0">0</button>
+            <button type="button" class="key" data-action="number" data-value="." aria-label="소수점">.</button>
+            <button type="button" class="key key-equals" data-action="equals" aria-label="계산 결과">=</button>
+          </div>
+          <p id="message" class="message" role="status" aria-live="polite">숫자를 입력해 계산을 시작하세요.</p>
+          <noscript><p class="load-error">계산기를 사용하려면 브라우저에서 JavaScript를 허용해 주세요.</p></noscript>
+        </section>
+
+        <aside class="guide" aria-label="계산기 사용 안내">
+          <div class="guide-title"><span class="tiny-plus" aria-hidden="true">+</span><h2>작은 사용 가이드</h2></div>
+          <section class="guide-section">
+            <span class="section-number">01</span>
+            <div><h3>식과 결과를 한눈에</h3><p>누른 숫자와 연산자는 위에,<br>현재 숫자와 계산 결과는 크게 보여요.</p><div class="example" aria-label="계산 예시"><span>12 + 8</span><span class="example-equals">=</span><strong>20</strong></div></div>
+          </section>
+          <section class="guide-section">
+            <span class="section-number">02</span>
+            <div><h3>익숙한 계산 순서</h3><p>곱셈과 나눗셈을 먼저 계산해요.<br><span class="inline-equation">2 + 3 × 4 = 14</span></p></div>
+          </section>
+          <section class="guide-section keyboard-section">
+            <span class="section-number">03</span>
+            <div><h3>키보드로도 편하게</h3><dl class="shortcuts"><div><dt>숫자 · 사칙연산</dt><dd><kbd>0–9</kbd> <kbd>+ − * /</kbd></dd></div><div><dt>결과 확인</dt><dd><kbd>Enter</kbd> <span>또는</span> <kbd>=</kbd></dd></div><div><dt>한 글자 삭제</dt><dd><kbd>Backspace</kbd></dd></div><div><dt>전체 초기화</dt><dd><kbd>Esc</kbd></dd></div></dl></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer"><span>작은 계산을 위한, 단정한 공간.</span><span class="footer-symbols" aria-hidden="true">+ <span>−</span> × <span>÷</span></span></footer>
+  </div>
+  <!-- 요청한 jQuery 3.7.1을 그대로 사용합니다. -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script>
+/* HTML: 화면 / CSS: 디자인 / JavaScript: 계산 / jQuery: 이벤트와 화면 갱신 */
+(function () {
+  "use strict";
+
+  // CDN 연결 실패 시 원인을 안내합니다.
+  if (!window.jQuery) {
+    document.getElementById("message").textContent = "jQuery를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요.";
+    document.getElementById("state-label").textContent = "연결 확인";
+    document.querySelector(".calculator").classList.add("has-error");
+    document.querySelectorAll(".key").forEach(function (button) { button.disabled = true; });
+    return;
+  }
+
+  $(function () {
+    // 식을 ["12", "+", "3", "*", "4"]처럼 숫자와 연산자로 나눠 보관합니다.
+    let tokens = [];
+    let currentInput = "";
+    let completedExpression = "";
+    let resultShown = false;
+    let continuesResult = false;
+    let hasError = false;
+    let message = "숫자를 입력해 계산을 시작하세요.";
+    const MAX_DIGITS = 12;
+
+    // 내부의 * / -를 화면에서는 × ÷ −로 표시합니다.
+    function readable(text) {
+      return text.replace(/\*/g, "×").replace(/\//g, "÷").replace(/-/g, "−");
+    }
+
+    // 모든 버튼은 상태를 변경한 뒤 이 함수로 화면을 갱신합니다.
+    function render() {
+      const inputTokens = currentInput !== "" ? tokens.concat(currentInput) : tokens;
+      const expression = resultShown ? completedExpression + " =" : inputTokens.join(" ") || "0";
+      const previousNumber = tokens.length >= 2 ? tokens[tokens.length - 2] : "0";
+      const display = hasError ? "오류" : readable(currentInput || previousNumber);
+
+      $("#expression").text(readable(expression));
+      $("#display").text(display).toggleClass("is-small", display.length > 10 && display.length <= 15).toggleClass("is-tiny", display.length > 15);
+      $("#state-label").text(hasError ? "입력 확인" : resultShown ? "계산 완료" : inputTokens.length ? "입력 중" : "준비");
+      $("#message").text(message);
+      $(".calculator").toggleClass("has-error", hasError);
+      $(".key-operator").removeClass("is-selected");
+
+      if (!currentInput && tokens.length && !hasError) {
+        const operator = tokens[tokens.length - 1];
+        $(".key-operator").filter(function () { return $(this).attr("data-value") === operator; }).addClass("is-selected");
+      }
+
+      // 식이 길어져도 마지막에 누른 숫자/연산자가 보입니다.
+      const expressionElement = $("#expression")[0];
+      expressionElement.scrollLeft = expressionElement.scrollWidth;
+    }
+
+    function clearAll() {
+      tokens = [];
+      currentInput = "";
+      completedExpression = "";
+      resultShown = false;
+      continuesResult = false;
+      hasError = false;
+      message = "숫자를 입력해 계산을 시작하세요.";
+    }
+
+    function inputNumber(value) {
+      // 결과 또는 오류 다음에 숫자를 누르면 새로운 계산을 시작합니다.
+      if (resultShown || hasError) clearAll();
+      message = "Enter 또는 = 버튼으로 결과를 확인하세요.";
+
+      if (value === ".") {
+        if (currentInput.includes(".")) return;
+        currentInput = currentInput === "" ? "0." : currentInput + ".";
+        return;
+      }
+
+      if (currentInput.replace(/[^0-9]/g, "").length >= MAX_DIGITS) {
+        message = "한 숫자는 최대 12자리까지 입력할 수 있어요.";
+        return;
+      }
+      currentInput = currentInput === "0" ? value : currentInput + value;
+    }
+
+    function inputOperator(operator) {
+      if (hasError) return;
+      if (currentInput === "" && tokens.length === 0) {
+        message = "먼저 숫자를 입력해 주세요.";
+        return;
+      }
+      if (resultShown) {
+        tokens = [];
+        resultShown = false;
+        continuesResult = true;
+      }
+      if (currentInput !== "") {
+        tokens.push(currentInput, operator);
+        currentInput = "";
+      } else {
+        // 연산자를 연속으로 누르면 마지막 연산자로 바꿉니다.
+        tokens[tokens.length - 1] = operator;
+      }
+      message = "다음 숫자를 입력하세요.";
+    }
+
+    function deleteLast() {
+      if (hasError || resultShown) {
+        clearAll();
+        return;
+      }
+      if (currentInput !== "") {
+        currentInput = currentInput.slice(0, -1);
+      } else if (tokens.length > 0) {
+        tokens.pop(); // 마지막 연산자를 지웁니다.
+        currentInput = tokens.pop(); // 이전 숫자를 다시 편집할 수 있게 합니다.
+        // 이전 계산 결과까지 되돌아오면 결과 상태로 복귀합니다.
+        // 음수/지수 표기 결과의 일부만 지워 잘못된 숫자가 되는 것을 막습니다.
+        if (tokens.length === 0 && continuesResult) {
+          resultShown = true;
+          continuesResult = false;
+          message = "이전 결과로 돌아왔어요. 숫자로 새 계산을 시작하세요.";
+          return;
+        }
+      }
+      message = "마지막 입력을 지웠어요.";
+    }
+
+    // eval() 없이 연산 순서를 직접 처리합니다.
+    function calculate(expressionTokens) {
+      const numbers = [Number(expressionTokens[0])];
+      const operators = [];
+
+      // 1단계: 곱셈/나눗셈을 왼쪽부터 먼저 계산합니다.
+      for (let i = 1; i < expressionTokens.length; i += 2) {
+        const operator = expressionTokens[i];
+        const nextNumber = Number(expressionTokens[i + 1]);
+        if (operator === "*" || operator === "/") {
+          if (operator === "/" && nextNumber === 0) {
+            throw new Error("0으로 나눌 수 없습니다. 새 숫자나 AC를 눌러 주세요.");
+          }
+          const previousNumber = numbers.pop();
+          numbers.push(operator === "*" ? previousNumber * nextNumber : previousNumber / nextNumber);
+        } else {
+          operators.push(operator);
+          numbers.push(nextNumber);
+        }
+      }
+
+      // 2단계: 남아 있는 덧셈/뺄셈을 왼쪽부터 계산합니다.
+      let result = numbers[0];
+      for (let i = 0; i < operators.length; i++) {
+        result = operators[i] === "+" ? result + numbers[i + 1] : result - numbers[i + 1];
+      }
+      if (!Number.isFinite(result)) {
+        throw new Error("계산 가능한 수의 범위를 벗어났습니다. AC를 눌러 주세요.");
+      }
+
+      // 0.1 + 0.2 같은 계산의 부동소수점 꼬리를 정리합니다.
+      return String(Number(result.toPrecision(12)));
+    }
+
+    function showResult() {
+      if (hasError || resultShown) return;
+      if (currentInput === "") {
+        message = tokens.length ? "연산자 다음에 숫자를 입력해 주세요." : "먼저 숫자를 입력해 주세요.";
+        return;
+      }
+      const expressionTokens = tokens.concat(currentInput);
+      try {
+        const result = calculate(expressionTokens);
+        completedExpression = expressionTokens.join(" ");
+        currentInput = result;
+        tokens = [];
+        resultShown = true;
+        continuesResult = false;
+        message = "숫자로 새 계산 · 연산자로 이어 계산";
+      } catch (error) {
+        hasError = true;
+        message = error.message;
+      }
+    }
+
+    // 마우스와 키보드가 같은 함수를 사용하도록 입력 처리를 모읍니다.
+    function handleInput(action, value) {
+      if (action === "number") inputNumber(value);
+      else if (action === "operator") inputOperator(value);
+      else if (action === "clear") clearAll();
+      else if (action === "delete") deleteLast();
+      else if (action === "equals") showResult();
+      render();
+    }
+
+    // jQuery로 버튼 클릭 이벤트를 등록합니다.
+    $(".key").on("click", function () {
+      handleInput($(this).attr("data-action"), $(this).attr("data-value"));
+    });
+
+    // 숫자, 사칙연산, Enter, Backspace, Esc 키를 지원합니다.
+    $(document).on("keydown", function (event) {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+      if ($(event.target).is("input, textarea, select, [contenteditable='true']")) return;
+      let action;
+      let value = event.key;
+      if (/^[0-9.]$/.test(value)) action = "number";
+      else if (["+", "-", "*", "/"].includes(value)) action = "operator";
+      else if (value === "Enter" || value === "=") action = "equals";
+      else if (value === "Backspace") action = "delete";
+      else if (value === "Escape" || value === "Delete") action = "clear";
+      else return;
+      event.preventDefault();
+      handleInput(action, value);
+      const button = $(".key").filter(function () {
+        return $(this).attr("data-action") === action && (["number", "operator"].includes(action) ? $(this).attr("data-value") === value : true);
+      });
+      button.addClass("is-pressed");
+      setTimeout(function () { button.removeClass("is-pressed"); }, 140);
+    });
+
+    render();
+  });
+})();
+
+  </script>
+</body>
+</html>
